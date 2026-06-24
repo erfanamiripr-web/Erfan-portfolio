@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پنل من — Erfan Amiripour</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+    --bg: #F2F2F0; --white: #FFFFFF; --black: #111111;
+    --mid: #888888; --border: #DEDEDE;
+    --green: #1E7E34; --red: #C53030;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'Vazirmatn','Inter',sans-serif;
+    background: var(--bg); color: var(--black);
+    direction: rtl; text-align: right;
+    font-size: 13px; line-height: 1.7;
+}
+a { color: inherit; text-decoration: none; }
+button { cursor:pointer; }
+
+#gate {
+    position: fixed; inset:0; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 500; flex-direction: column; gap: 14px; text-align:center; padding:20px;
+}
+#gate i { font-size: 22px; color: var(--mid); }
+#gate p { color: var(--mid); font-size: 12px; }
+#gate.hidden { display:none; }
+
+.topbar {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 14px 20px; display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top:0; z-index: 50;
+}
+.topbar .brand { font-weight:700; font-size: 14px; }
+.topbar .brand span { color: var(--mid); font-weight: 400; font-size: 11px; margin-right: 8px; }
+.topbar .actions { display:flex; align-items:center; gap: 14px; }
+.topbar .actions a, .topbar .actions button {
+    font-size: 11.5px; color: var(--mid); background:none; border:none; font-family:inherit;
+}
+.topbar .actions a:hover, .topbar .actions button:hover { color: var(--black); }
+
+.wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 80px; }
+
+.greeting { font-size: 17px; font-weight:700; margin-bottom: 4px; }
+.greeting-sub { font-size: 12px; color: var(--mid); margin-bottom: 24px; }
+
+.card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 6px; padding: 18px; margin-bottom: 14px;
+}
+.card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.card .meta { font-size: 11.5px; color: var(--mid); }
+
+.progress-bar { background: var(--bg); border-radius: 999px; height:8px; overflow:hidden; margin: 12px 0 6px; border:1px solid var(--border); }
+.progress-bar > div { background: var(--black); height:100%; transition: width .4s; }
+.progress-label { font-size: 11.5px; color: var(--mid); display:flex; justify-content:space-between; }
+
+.note-box {
+    background: var(--bg); border-radius: 4px; padding: 10px 12px;
+    font-size: 12px; margin-top: 12px; border-right: 3px solid var(--black);
+}
+html[data-lang="en"] .note-box { border-right:none; border-left: 3px solid var(--black); }
+
+.badge {
+    display:inline-block; font-size: 10.5px; padding: 3px 10px;
+    border-radius: 999px; font-weight:500; margin-bottom:8px;
+}
+.badge.in_progress { background:#FFF6E0; color:#B7791F; }
+.badge.review { background:#E7F0FE; color:#2B6CB0; }
+.badge.revision { background:#FDECEC; color: var(--red); }
+.badge.completed { background:#E9F7EF; color: var(--green); }
+.badge.cancelled { background: var(--border); color: var(--mid); }
+
+.section-title { font-size: 12px; font-weight:700; margin: 24px 0 10px; color: var(--mid); text-transform:uppercase; letter-spacing:.04em; }
+
+.file-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size:12.5px;
+}
+.file-item:last-child { border-bottom:none; }
+.file-item .file-name i { margin-left:6px; color: var(--mid); }
+.file-item a { color: var(--black); font-weight:500; }
+.file-item a:hover { color: var(--mid); }
+
+.empty { text-align:center; padding: 30px 0; color: var(--mid); font-size:12px; }
+
+.btn {
+    background: var(--black); color: var(--white); border:none;
+    border-radius: 4px; padding: 10px 18px; font-size:12.5px; font-weight:500;
+    font-family:inherit; transition: opacity .2s;
+}
+.btn:hover { opacity:.85; }
+.btn.secondary { background: var(--white); color: var(--black); border:1px solid var(--border); }
+.btn.full { width:100%; }
+
+.field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.field label { font-size: 11.5px; color: var(--mid); }
+.field input, .field select, .field textarea {
+    border:1px solid var(--border); border-radius:4px; padding:9px 11px;
+    font-family:inherit; font-size:12.5px; background: var(--bg); color: var(--black);
+    outline:none; width:100%;
+}
+.field textarea { resize: vertical; min-height: 70px; }
+
+.msg { font-size:11.5px; padding:9px 11px; border-radius:4px; margin-bottom:12px; display:none; }
+.msg.show { display:block; }
+.msg.success { background:#E9F7EF; color: var(--green); }
+.msg.error { background:#FDECEC; color: var(--red); }
+
+.ticket-card { cursor:pointer; }
+.ticket-status { display:inline-block; font-size: 10.5px; padding: 2px 9px; border-radius:999px; font-weight:500; }
+.ticket-status.open { background:#FDECEC; color: var(--red); }
+.ticket-status.answered { background:#E9F7EF; color: var(--green); }
+.ticket-status.closed { background: var(--border); color: var(--mid); }
+
+.ticket-thread { display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+.ticket-thread.open { display:block; }
+.msg-item { padding: 10px 12px; border-radius:4px; margin-bottom:8px; font-size:12px; background: var(--bg); }
+.msg-item.is-admin { background:#EFF6FF; }
+.msg-item .who { font-size: 10.5px; color: var(--mid); margin-bottom:3px; }
+
+.new-ticket-toggle { font-size:12px; color:var(--mid); text-decoration:underline; background:none; border:none; font-family:inherit; cursor:pointer; }
+.new-ticket-form { display:none; margin-top:14px; }
+.new-ticket-form.open { display:block; }
+
+.tab-row { display:flex; gap:4px; margin-bottom: 18px; border-bottom:1px solid var(--border); }
+.tab-row button {
+    background:none; border:none; font-family:inherit; font-size:12.5px;
+    color:var(--mid); padding:10px 14px; border-bottom:2px solid transparent;
+}
+.tab-row button.active { color:var(--black); font-weight:600; border-bottom-color:var(--black); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+    <i class="fas fa-circle-notch fa-spin"></i>
+    <p>در حال بررسی دسترسی…</p>
+</div>
+
+<div id="appRoot" style="display:none;">
+    <div class="topbar">
+        <div class="brand">پنل من <span id="userEmailTag"></span></div>
+        <div class="actions">
+            <a href="/">صفحه اصلی</a>
+            <button id="logoutBtn">خروج</button>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div class="greeting" id="greetingText">خوش آمدید</div>
+        <div class="greeting-sub">پیگیری پروژه، فایل‌ها و درخواست‌های شما</div>
+
+        <div class="tab-row">
+            <button class="active" data-target="tabProject">پروژه من</button>
+            <button data-target="tabTickets">تیکت‌ها</button>
+        </div>
+
+        <!-- ═══════ TAB: PROJECT ═══════ -->
+        <div class="tab-panel active" id="tabProject">
+            <div id="projectsContainer"><div class="empty">در حال بارگذاری...</div></div>
+        </div>
+
+        <!-- ═══════ TAB: TICKETS ═══════ -->
+        <div class="tab-panel" id="tabTickets">
+            <div class="msg" id="ticketMsg"></div>
+
+            <button class="new-ticket-toggle" id="newTicketToggleBtn">+ ارسال درخواست جدید (تیکت)</button>
+
+            <div class="new-ticket-form card" id="newTicketForm">
+                <div class="field">
+                    <label>موضوع</label>
+                    <input type="text" id="ticketSubject" placeholder="مثلاً: درخواست ادیت رنگ لوگو">
+                </div>
+                <div class="field">
+                    <label>نوع درخواست</label>
+                    <select id="ticketCategory">
+                        <option value="edit_request">درخواست ادیت</option>
+                        <option value="support">پشتیبانی</option>
+                        <option value="billing">مالی</option>
+                        <option value="general">عمومی</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>توضیحات</label>
+                    <textarea id="ticketFirstMessage" placeholder="توضیح کامل درخواست خود را بنویسید..."></textarea>
+                </div>
+                <button class="btn full" id="submitTicketBtn">ارسال تیکت</button>
+            </div>
+
+            <div class="section-title">تیکت‌های قبلی</div>
+            <div id="ticketsContainer"><div class="empty">در حال بارگذاری...</div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://wagnaqhyhqdoerohctxn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZ25hcWh5aHFkb2Vyb2hjdHhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMDkxOTgsImV4cCI6MjA5Nzg4NTE5OH0.4FzOaYQ20tqCk28vFOPYdGy5_5qJYtBStPzgZAc9Gpg';
+
+if (!window.__sbClient) {
+    window.__sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+const sb = window.__sbClient;
+
+let CURRENT_USER = null;
+let MY_PROJECT_IDS = [];
+
+/* ════════════════════════════════════════════════
+   AUTH GATE
+   ════════════════════════════════════════════════ */
+async function checkAccess() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+        window.location.href = '/?login=1';
+        return;
+    }
+    CURRENT_USER = session.user;
+
+    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', session.user.id).single();
+    const name = profile?.full_name || session.user.email;
+
+    document.getElementById('userEmailTag').textContent = name;
+    document.getElementById('greetingText').textContent = `سلام، ${name} 👋`;
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('appRoot').style.display = 'block';
+
+    loadProjects();
+    loadTickets();
+}
+checkAccess();
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    window.location.href = '/';
+});
+
+/* ════════════════════════════════════════════════
+   TABS
+   ════════════════════════════════════════════════ */
+document.querySelectorAll('.tab-row button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-row button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.target).classList.add('active');
+    });
+});
+
+function showMsg(elId, text, type) {
+    const el = document.getElementById(elId);
+    el.textContent = text;
+    el.className = 'msg show ' + type;
+    setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+/* ════════════════════════════════════════════════
+   PROJECTS + FILES
+   ════════════════════════════════════════════════ */
+const statusLabel = {
+    in_progress: 'در حال انجام', review: 'در بررسی', revision: 'در حال ادیت',
+    completed: 'تکمیل‌شده', cancelled: 'لغو شده'
+};
+
+async function loadProjects() {
+    const { data: projects, error } = await sb
+        .from('projects')
+        .select('id, title, status, progress_percent, progress_note, updated_at')
+        .eq('user_id', CURRENT_USER.id)
+        .order('created_at', { ascending: false });
+
+    const el = document.getElementById('projectsContainer');
+    if (error) { el.innerHTML = `<div class="empty">خطا: ${escapeHtml(error.message)}</div>`; return; }
+    if (!projects || projects.length === 0) {
+        el.innerHTML = '<div class="card"><div class="empty">هنوز پروژه‌ای برای شما ثبت نشده است.<br>پس از شروع همکاری، پروژه‌ی شما اینجا نمایش داده می‌شود.</div></div>';
+        return;
+    }
+
+    MY_PROJECT_IDS = projects.map(p => p.id);
+
+    const blocks = await Promise.all(projects.map(async (p) => {
+        const filesHtml = await renderProjectFiles(p.id);
+        return `
+        <div class="card">
+            <span class="badge ${p.status}">${statusLabel[p.status] || p.status}</span>
+            <h3>${escapeHtml(p.title)}</h3>
+            <div class="progress-bar"><div style="width:${p.progress_percent}%"></div></div>
+            <div class="progress-label"><span>پیشرفت پروژه</span><span>${p.progress_percent}٪</span></div>
+            ${p.progress_note ? `<div class="note-box"><i class="fas fa-comment-dots"></i> ${escapeHtml(p.progress_note)}</div>` : ''}
+
+            <div class="section-title">فایل‌های پرزنت لوگو</div>
+            ${filesHtml}
+        </div>`;
+    }));
+
+    el.innerHTML = blocks.join('');
+}
+
+async function renderProjectFiles(projectId) {
+    const { data: files, error } = await sb
+        .from('project_files')
+        .select('id, file_name, storage_path, created_at')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+    if (error) return `<div class="empty">خطا در دریافت فایل‌ها</div>`;
+    if (!files || files.length === 0) return `<div class="empty">هنوز فایلی برای شما ارسال نشده</div>`;
+
+    const itemsHtml = await Promise.all(files.map(async (f) => {
+        const { data: signed } = await sb.storage.from('project-files').createSignedUrl(f.storage_path, 3600);
+        const url = signed?.signedUrl || '#';
+        return `
+        <div class="file-item">
+            <span class="file-name"><i class="fas fa-file-alt"></i>${escapeHtml(f.file_name)}</span>
+            <a href="${url}" target="_blank" rel="noopener"><i class="fas fa-download"></i> دانلود</a>
+        </div>`;
+    }));
+
+    return itemsHtml.join('');
+}
+
+/* ════════════════════════════════════════════════
+   TICKETS
+   ════════════════════════════════════════════════ */
+const ticketStatusLabel = { open: 'باز', answered: 'پاسخ داده شده', closed: 'بسته شده' };
+
+document.getElementById('newTicketToggleBtn').addEventListener('click', () => {
+    document.getElementById('newTicketForm').classList.toggle('open');
+});
+
+document.getElementById('submitTicketBtn').addEventListener('click', async () => {
+    const subject = document.getElementById('ticketSubject').value.trim();
+    const category = document.getElementById('ticketCategory').value;
+    const firstMessage = document.getElementById('ticketFirstMessage').value.trim();
+
+    if (!subject || !firstMessage) {
+        showMsg('ticketMsg', 'موضوع و توضیحات را کامل وارد کنید.', 'error');
+        return;
+    }
+
+    const projectId = MY_PROJECT_IDS.length > 0 ? MY_PROJECT_IDS[0] : null;
+
+    const { data: ticket, error: tErr } = await sb.from('tickets').insert({
+        user_id: CURRENT_USER.id, project_id: projectId, subject, category
+    }).select().single();
+
+    if (tErr) { showMsg('ticketMsg', tErr.message, 'error'); return; }
+
+    const { error: mErr } = await sb.from('ticket_messages').insert({
+        ticket_id: ticket.id, sender_id: CURRENT_USER.id, message: firstMessage
+    });
+
+    if (mErr) { showMsg('ticketMsg', mErr.message, 'error'); return; }
+
+    showMsg('ticketMsg', 'تیکت شما با موفقیت ارسال شد.', 'success');
+    document.getElementById('ticketSubject').value = '';
+    document.getElementById('ticketFirstMessage').value = '';
+    document.getElementById('newTicketForm').classList.remove('open');
+    loadTickets();
+});
+
+async function loadTickets() {
+    const { data: tickets, error } = await sb
+        .from('tickets')
+        .select('id, subject, category, status, created_at')
+        .eq('user_id', CURRENT_USER.id)
+        .order('created_at', { ascending: false });
+
+    const el = document.getElementById('ticketsContainer');
+    if (error) { el.innerHTML = `<div class="empty">خطا: ${escapeHtml(error.message)}</div>`; return; }
+    if (!tickets || tickets.length === 0) { el.innerHTML = '<div class="empty">هنوز تیکتی ارسال نکرده‌اید</div>'; return; }
+
+    el.innerHTML = tickets.map(t => `
+        <div class="card ticket-card" onclick="toggleTicketThread('${t.id}')">
+            <span class="ticket-status ${t.status}">${ticketStatusLabel[t.status] || t.status}</span>
+            <h3>${escapeHtml(t.subject)}</h3>
+            <div class="meta">${new Date(t.created_at).toLocaleDateString('fa-IR')}</div>
+            <div class="ticket-thread" id="thread-${t.id}"></div>
+        </div>
+    `).join('');
+}
+
+async function toggleTicketThread(ticketId) {
+    const thread = document.getElementById('thread-' + ticketId);
+    const isOpen = thread.classList.contains('open');
+    document.querySelectorAll('.ticket-thread.open').forEach(t => t.classList.remove('open'));
+    if (isOpen) return;
+
+    thread.classList.add('open');
+    thread.innerHTML = '<div class="meta">در حال بارگذاری...</div>';
+
+    const { data: messages, error } = await sb
+        .from('ticket_messages')
+        .select('id, message, created_at, profiles(full_name, role)')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+    if (error) { thread.innerHTML = `<div class="meta">خطا: ${escapeHtml(error.message)}</div>`; return; }
+
+    thread.innerHTML = (messages || []).map(m => `
+        <div class="msg-item ${m.profiles?.role === 'admin' ? 'is-admin' : ''}">
+            <div class="who">${m.profiles?.role === 'admin' ? 'عرفان امیری‌پور (پشتیبانی)' : 'شما'}</div>
+            <div>${escapeHtml(m.message)}</div>
+        </div>
+    `).join('');
+}
+
+/* ════════════════════════════════════════════════
+   UTIL
+   ════════════════════════════════════════════════ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>
